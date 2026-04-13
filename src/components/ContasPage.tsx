@@ -1,8 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { db, type Account } from "@/lib/db";
-import { useAccounts, useTransactions, useBalances } from "@/lib/hooks";
+import {
+  addAccount,
+  deleteAccount,
+  updateAccount,
+  useAccounts,
+  useBalances,
+  useTransactions,
+  type Account,
+} from "@/lib/data";
 import { brl } from "@/lib/format";
 import AccountCard from "./AccountCard";
 
@@ -17,10 +24,7 @@ export default function ContasPage() {
 
   async function remove(a: Account) {
     if (!confirm(`Excluir a conta ${a.name}? Transações relacionadas serão removidas.`)) return;
-    await db.transaction("rw", db.accounts, db.transactions, async () => {
-      await db.transactions.where("accountId").equals(a.id).delete();
-      await db.accounts.delete(a.id);
-    });
+    await deleteAccount(a.id);
   }
 
   return (
@@ -91,28 +95,34 @@ function AccountForm({ account, onClose }: { account?: Account; onClose: () => v
     color: account?.color ?? PALETTE[0],
     openingBalance: account ? String(account.openingBalance).replace(".", ",") : "0",
   });
+  const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const opening = Number(form.openingBalance.replace(",", ".")) || 0;
     if (!form.name) return;
-    if (account) {
-      await db.accounts.update(account.id, {
-        name: form.name,
-        color: form.color,
-        openingBalance: opening,
-      });
-    } else {
-      const id = form.name.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now().toString(36);
-      await db.accounts.add({
-        id,
-        name: form.name,
-        kind: "custom",
-        color: form.color,
-        openingBalance: opening,
-      });
+    setSaving(true);
+    try {
+      if (account) {
+        await updateAccount(account.id, {
+          name: form.name,
+          color: form.color,
+          openingBalance: opening,
+        });
+      } else {
+        await addAccount({
+          name: form.name,
+          kind: "custom",
+          color: form.color,
+          openingBalance: opening,
+        });
+      }
+      onClose();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
     }
-    onClose();
   }
 
   return (
@@ -159,9 +169,10 @@ function AccountForm({ account, onClose }: { account?: Account; onClose: () => v
         </div>
         <button
           type="submit"
-          className="mt-5 w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)]"
+          disabled={saving}
+          className="mt-5 w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)] disabled:opacity-60"
         >
-          Salvar
+          {saving ? "Salvando..." : "Salvar"}
         </button>
       </form>
     </div>

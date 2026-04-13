@@ -1,5 +1,5 @@
 import { brl } from "@/lib/format";
-import type { Account } from "@/lib/db";
+import type { Account } from "@/lib/data";
 
 export default function AccountCard({
   account,

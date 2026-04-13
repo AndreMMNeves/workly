@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect } from "react";
-import { ensureSeeded } from "@/lib/db";
+import { ensureSeedAccounts } from "@/lib/data";
 
 export default function SeedBoot() {
   useEffect(() => {
-    ensureSeeded();
+    ensureSeedAccounts().catch(() => {});
   }, []);
   return null;
 }

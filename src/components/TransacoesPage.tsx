@@ -1,8 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { db, DEFAULT_CATEGORIES, type Transaction } from "@/lib/db";
-import { useAccounts, useTransactions } from "@/lib/hooks";
+import {
+  DEFAULT_CATEGORIES,
+  deleteTransaction,
+  useAccounts,
+  useTransactions,
+  type Transaction,
+} from "@/lib/data";
 import { brl, shortDate } from "@/lib/format";
 import AddTransactionDialog from "./AddTransactionDialog";
 
@@ -60,9 +65,8 @@ export default function TransacoesPage() {
   }, [filtered]);
 
   async function remove(t: Transaction) {
-    if (!t.id) return;
     if (!confirm("Excluir esta transação?")) return;
-    await db.transactions.delete(t.id);
+    await deleteTransaction(t.id);
   }
 
   return (

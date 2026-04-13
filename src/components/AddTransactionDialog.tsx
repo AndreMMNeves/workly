@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { db, DEFAULT_CATEGORIES, type Account, type Transaction } from "@/lib/db";
+import {
+  DEFAULT_CATEGORIES,
+  addTransaction,
+  updateTransaction,
+  type Account,
+  type Transaction,
+} from "@/lib/data";
 
 type Props = {
   accounts: Account[];
@@ -31,6 +37,7 @@ export default function AddTransactionDialog({
     type: (edit && edit.amount < 0 ? "expense" : "income") as "expense" | "income",
   });
   const [form, setForm] = useState(blank);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) setForm(blank());
@@ -54,12 +61,16 @@ export default function AddTransactionDialog({
       category: form.category,
       amount: form.type === "expense" ? -Math.abs(n) : Math.abs(n),
     };
-    if (edit?.id) {
-      await db.transactions.update(edit.id, payload);
-    } else {
-      await db.transactions.add({ ...payload, createdAt: Date.now() });
+    setSaving(true);
+    try {
+      if (edit?.id) await updateTransaction(edit.id, payload);
+      else await addTransaction(payload);
+      close();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
     }
-    close();
   }
 
   return (
@@ -172,9 +183,10 @@ export default function AddTransactionDialog({
             </div>
             <button
               type="submit"
-              className="mt-5 w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)]"
+              disabled={saving}
+              className="mt-5 w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)] disabled:opacity-60"
             >
-              Salvar
+              {saving ? "Salvando..." : "Salvar"}
             </button>
           </form>
         </div>

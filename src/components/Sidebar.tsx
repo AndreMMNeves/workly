@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 const items = [
   { href: "/", label: "Overview", icon: "◎" },
@@ -12,8 +13,17 @@ const items = [
   { href: "/ajustes", label: "Ajustes", icon: "⚙" },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ userEmail }: { userEmail: string }) {
   const pathname = usePathname();
+  const router = useRouter();
+
+  async function signOut() {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/login");
+    router.refresh();
+  }
+
   return (
     <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] p-4">
       <Link href="/" className="flex items-center gap-2 px-2 py-3">
@@ -42,8 +52,17 @@ export default function Sidebar() {
           );
         })}
       </nav>
-      <div className="mt-auto rounded-xl bg-[var(--surface-2)] p-4 text-xs text-[var(--muted)]">
-        Dados ficam salvos localmente no seu navegador (IndexedDB).
+      <div className="mt-auto space-y-2">
+        <div className="rounded-xl bg-[var(--surface-2)] p-3 text-xs">
+          <div className="text-[var(--muted)]">Logado como</div>
+          <div className="truncate">{userEmail}</div>
+        </div>
+        <button
+          onClick={signOut}
+          className="w-full rounded-xl border border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)] hover:text-foreground hover:bg-[var(--surface-2)]"
+        >
+          Sair
+        </button>
       </div>
     </aside>
   );

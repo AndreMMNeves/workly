@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useAccounts, useTransactions } from "@/lib/hooks";
+import { useAccounts, useTransactions } from "@/lib/data";
 import { brl, monthKey } from "@/lib/format";
 
 const WEEK_DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];

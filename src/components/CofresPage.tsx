@@ -1,22 +1,28 @@
 "use client";
 
-import { useLiveQuery } from "dexie-react-hooks";
 import { useState } from "react";
-import { db, type Vault, type VaultMovement } from "@/lib/db";
-import { useAccounts } from "@/lib/hooks";
+import {
+  addVault,
+  addVaultMovement,
+  deleteVault,
+  useAccounts,
+  useVaultMovements,
+  useVaults,
+  type Vault,
+} from "@/lib/data";
 import { brl, shortDate } from "@/lib/format";
 
 const PALETTE = ["#34e3b0", "#8a2be2", "#0072c6", "#f5a524", "#ef6b6b", "#f06292"];
 
 export default function CofresPage() {
   const accounts = useAccounts();
-  const vaults = useLiveQuery(() => db.vaults.toArray(), [], []) as Vault[];
-  const movements = useLiveQuery(() => db.vaultMovements.toArray(), [], []) as VaultMovement[];
+  const vaults = useVaults();
+  const movements = useVaultMovements();
 
   const [creating, setCreating] = useState(false);
   const [moving, setMoving] = useState<{ vault: Vault; type: "deposit" | "withdraw" } | null>(null);
 
-  const balanceOf = (id?: number) =>
+  const balanceOf = (id: string) =>
     movements.filter((m) => m.vaultId === id).reduce((a, b) => a + b.amount, 0);
 
   return (
@@ -80,10 +86,7 @@ export default function CofresPage() {
                   <button
                     onClick={async () => {
                       if (!confirm(`Excluir o cofre ${v.name}?`)) return;
-                      await db.transaction("rw", db.vaults, db.vaultMovements, async () => {
-                        await db.vaultMovements.where("vaultId").equals(v.id!).delete();
-                        await db.vaults.delete(v.id!);
-                      });
+                      await deleteVault(v.id);
                     }}
                     className="rounded-full border border-[var(--border)] px-3 py-2 text-xs text-[var(--danger)]"
                   >
@@ -129,18 +132,25 @@ function VaultForm({ onClose, accounts }: { onClose: () => void; accounts: Retur
     color: PALETTE[0],
     accountId: accounts[0]?.id ?? "",
   });
+  const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.name) return;
-    await db.vaults.add({
-      name: form.name,
-      goal: Number(form.goal.replace(",", ".")) || 0,
-      color: form.color,
-      accountId: form.accountId || undefined,
-      createdAt: Date.now(),
-    });
-    onClose();
+    setSaving(true);
+    try {
+      await addVault({
+        name: form.name,
+        goal: Number(form.goal.replace(",", ".")) || 0,
+        color: form.color,
+        accountId: form.accountId || undefined,
+      });
+      onClose();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -176,8 +186,12 @@ function VaultForm({ onClose, accounts }: { onClose: () => void; accounts: Retur
             ))}
           </div>
         </Field>
-        <button type="submit" className="w-full rounded-full bg-[var(--accent)] py-2.5 font-medium text-[var(--background)]">
-          Criar cofre
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full rounded-full bg-[var(--accent)] py-2.5 font-medium text-[var(--background)] disabled:opacity-60"
+        >
+          {saving ? "Salvando..." : "Criar cofre"}
         </button>
       </form>
     </Modal>
@@ -196,19 +210,26 @@ function MovementForm({
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [saving, setSaving] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const n = Number(amount.replace(",", ".")) || 0;
     if (!n) return;
-    await db.vaultMovements.add({
-      vaultId: vault.id!,
-      amount: type === "deposit" ? Math.abs(n) : -Math.abs(n),
-      date,
-      note: note || undefined,
-      createdAt: Date.now(),
-    });
-    onClose();
+    setSaving(true);
+    try {
+      await addVaultMovement({
+        vaultId: vault.id,
+        amount: type === "deposit" ? Math.abs(n) : -Math.abs(n),
+        date,
+        note: note || undefined,
+      });
+      onClose();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Erro ao salvar");
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -239,8 +260,12 @@ function MovementForm({
             className="w-full rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
           />
         </Field>
-        <button type="submit" className="w-full rounded-full bg-[var(--accent)] py-2.5 font-medium text-[var(--background)]">
-          Confirmar
+        <button
+          type="submit"
+          disabled={saving}
+          className="w-full rounded-full bg-[var(--accent)] py-2.5 font-medium text-[var(--background)] disabled:opacity-60"
+        >
+          {saving ? "Salvando..." : "Confirmar"}
         </button>
       </form>
     </Modal>

@@ -1,5 +1,5 @@
 import { brl, shortDate } from "@/lib/format";
-import type { Account, Transaction } from "@/lib/db";
+import type { Account, Transaction } from "@/lib/data";
 
 export default function RecentTransactions({
   items,
@@ -22,10 +22,7 @@ export default function RecentTransactions({
         const acc = accMap.get(t.accountId);
         const negative = t.amount < 0;
         return (
-          <li
-            key={t.id}
-            className="flex items-center justify-between py-3"
-          >
+          <li key={t.id} className="flex items-center justify-between py-3">
             <div className="flex items-center gap-3 min-w-0">
               <span
                 className="h-9 w-9 rounded-full grid place-items-center text-xs font-semibold"

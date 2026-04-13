@@ -2,7 +2,7 @@
 
 import { useMemo } from "react";
 import { brl, monthKey } from "@/lib/format";
-import { useAccounts, useTransactions, useBalances } from "@/lib/hooks";
+import { useAccounts, useTransactions, useBalances } from "@/lib/data";
 import AccountCard from "./AccountCard";
 import BalanceChart from "./BalanceChart";
 import RecentTransactions from "./RecentTransactions";

@@ -3,15 +3,18 @@
 import { useMemo } from "react";
 import { brl, monthKey } from "@/lib/format";
 import { useAccounts, useTransactions, useBalances } from "@/lib/data";
+import { useHideValues } from "@/lib/hideValues";
 import AccountCard from "./AccountCard";
 import BalanceChart from "./BalanceChart";
 import RecentTransactions from "./RecentTransactions";
 import AddTransactionDialog from "./AddTransactionDialog";
+import HideValuesToggle from "./HideValuesToggle";
 
 export default function Overview() {
   const accounts = useAccounts();
   const transactions = useTransactions();
   const balances = useBalances(accounts, transactions);
+  const { mask } = useHideValues();
 
   const total = useMemo(
     () => Array.from(balances.values()).reduce((a, b) => a + b, 0),
@@ -61,7 +64,10 @@ export default function Overview() {
             Suas contas e transações em um só lugar.
           </p>
         </div>
-        <AddTransactionDialog accounts={accounts} />
+        <div className="flex items-center gap-2">
+          <HideValuesToggle />
+          <AddTransactionDialog accounts={accounts} />
+        </div>
       </header>
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -75,19 +81,19 @@ export default function Overview() {
           <div className="flex items-center justify-between">
             <div>
               <div className="text-xs text-[var(--muted)]">Saldo total</div>
-              <div className="text-2xl font-semibold">{brl(total)}</div>
+              <div className="text-2xl font-semibold">{mask(brl(total))}</div>
             </div>
             <div className="flex gap-4 text-right text-xs">
               <div>
                 <div className="text-[var(--muted)]">Entradas (mês)</div>
                 <div className="text-[var(--accent)] font-semibold text-sm">
-                  {brl(monthIncome)}
+                  {mask(brl(monthIncome))}
                 </div>
               </div>
               <div>
                 <div className="text-[var(--muted)]">Saídas (mês)</div>
                 <div className="text-[var(--danger)] font-semibold text-sm">
-                  {brl(monthExpense)}
+                  {mask(brl(monthExpense))}
                 </div>
               </div>
             </div>

@@ -11,7 +11,9 @@ import {
   type Account,
 } from "@/lib/data";
 import { brl } from "@/lib/format";
+import { useHideValues } from "@/lib/hideValues";
 import AccountCard from "./AccountCard";
+import HideValuesToggle from "./HideValuesToggle";
 
 const PALETTE = ["#34e3b0", "#8a2be2", "#0072c6", "#f5a524", "#ef6b6b", "#f06292", "#26c6da", "#9ccc65"];
 
@@ -19,6 +21,7 @@ export default function ContasPage() {
   const accounts = useAccounts();
   const transactions = useTransactions();
   const balances = useBalances(accounts, transactions);
+  const { mask } = useHideValues();
   const [editing, setEditing] = useState<Account | null>(null);
   const [creating, setCreating] = useState(false);
 
@@ -36,12 +39,15 @@ export default function ContasPage() {
             Gerencie cartões e contas que você acompanha.
           </p>
         </div>
-        <button
-          onClick={() => setCreating(true)}
-          className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)]"
-        >
-          + Nova conta
-        </button>
+        <div className="flex items-center gap-2">
+          <HideValuesToggle />
+          <button
+            onClick={() => setCreating(true)}
+            className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)]"
+          >
+            + Nova conta
+          </button>
+        </div>
       </header>
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -54,7 +60,7 @@ export default function ContasPage() {
               <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-xs">
                 <span className="text-[var(--muted)]">{count} transações</span>
                 <span className="text-[var(--muted)]">
-                  Inicial: <span className="text-foreground">{brl(a.openingBalance)}</span>
+                  Inicial: <span className="text-foreground">{mask(brl(a.openingBalance))}</span>
                 </span>
                 <div className="flex gap-2">
                   <button

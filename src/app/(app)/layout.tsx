@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 import SeedBoot from "@/components/SeedBoot";
 import { createClient } from "@/lib/supabase/server";
+import { HideValuesProvider } from "@/lib/hideValues";
 
 export default async function AppLayout({
   children,
@@ -15,7 +16,7 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   return (
-    <>
+    <HideValuesProvider>
       <SeedBoot />
       <div className="flex min-h-screen">
         <Sidebar userEmail={user.email ?? ""} />
@@ -23,6 +24,6 @@ export default async function AppLayout({
           {children}
         </main>
       </div>
-    </>
+    </HideValuesProvider>
   );
 }

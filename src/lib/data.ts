@@ -220,8 +220,9 @@ function useLive<T>(
       });
     };
     run();
+    const channelName = `live:${table}:${Math.random().toString(36).slice(2)}`;
     const channel = supabase
-      .channel(`live:${table}`)
+      .channel(channelName)
       .on("postgres_changes", { event: "*", schema: "public", table }, run)
       .subscribe();
     return () => {

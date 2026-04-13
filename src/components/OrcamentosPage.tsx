@@ -212,12 +212,7 @@ function BudgetForm({
   onClose: () => void;
 }) {
   const toast = useToast();
-  const budgets = useBudgets();
-  const existing = new Set(budgets.map((b) => b.category));
-  const available = DEFAULT_CATEGORIES.filter((c) => !existing.has(c));
-  const [category, setCategory] = useState(
-    available[0] ?? DEFAULT_CATEGORIES[0],
-  );
+  const [category, setCategory] = useState(DEFAULT_CATEGORIES[0]);
   const [limit, setLimit] = useState("");
   const [saving, setSaving] = useState(false);
   const [touched, setTouched] = useState(false);

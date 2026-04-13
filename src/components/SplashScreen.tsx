@@ -2,18 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-const STORAGE_KEY = "workly-splash-shown";
-
 export default function SplashScreen() {
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(true);
   const [phase, setPhase] = useState(0);
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    if (sessionStorage.getItem(STORAGE_KEY)) return;
-    sessionStorage.setItem(STORAGE_KEY, "1");
-    setMounted(true);
 
     const timers = [
       setTimeout(() => setPhase(1), 300),

@@ -8,6 +8,7 @@ import {
   type Account,
   type Transaction,
 } from "@/lib/data";
+import { useToast } from "@/lib/toast";
 
 type Props = {
   accounts: Account[];
@@ -24,6 +25,7 @@ export default function AddTransactionDialog({
   trigger = "button",
   open: openProp,
 }: Props) {
+  const toast = useToast();
   const [openState, setOpenState] = useState(false);
   const open = trigger === "external" ? !!openProp : openState;
 
@@ -63,11 +65,16 @@ export default function AddTransactionDialog({
     };
     setSaving(true);
     try {
-      if (edit?.id) await updateTransaction(edit.id, payload);
-      else await addTransaction(payload);
+      if (edit?.id) {
+        await updateTransaction(edit.id, payload);
+        toast.success("Transação atualizada");
+      } else {
+        await addTransaction(payload);
+        toast.success("Transação adicionada");
+      }
       close();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erro ao salvar");
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSaving(false);
     }

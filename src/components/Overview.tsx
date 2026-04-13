@@ -9,6 +9,7 @@ import BalanceChart from "./BalanceChart";
 import RecentTransactions from "./RecentTransactions";
 import AddTransactionDialog from "./AddTransactionDialog";
 import HideValuesToggle from "./HideValuesToggle";
+import TransferDialog from "./TransferDialog";
 
 export default function Overview() {
   const accounts = useAccounts();
@@ -64,8 +65,9 @@ export default function Overview() {
             Suas contas e transações em um só lugar.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <HideValuesToggle />
+          <TransferDialog accounts={accounts} />
           <AddTransactionDialog accounts={accounts} />
         </div>
       </header>

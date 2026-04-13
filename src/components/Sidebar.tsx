@@ -8,6 +8,8 @@ const items = [
   { href: "/", label: "Overview", icon: "◎" },
   { href: "/contas", label: "Contas", icon: "▦" },
   { href: "/transacoes", label: "Transações", icon: "⇅" },
+  { href: "/recorrentes", label: "Recorrentes", icon: "↻" },
+  { href: "/orcamentos", label: "Orçamentos", icon: "◈" },
   { href: "/relatorios", label: "Relatórios", icon: "◢" },
   { href: "/cofres", label: "Cofres", icon: "✦" },
   { href: "/ajustes", label: "Ajustes", icon: "⚙" },

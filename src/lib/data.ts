@@ -19,6 +19,7 @@ export type Transaction = {
   merchant?: string;
   category: string;
   amount: number;
+  transferGroupId?: string;
   createdAt: string;
 };
 
@@ -28,7 +29,29 @@ export type Vault = {
   goal: number;
   color: string;
   accountId?: string;
+  deadline?: string;
   createdAt: string;
+};
+
+export type RecurringTransaction = {
+  id: string;
+  accountId: string;
+  description: string;
+  merchant?: string;
+  category: string;
+  amount: number;
+  frequency: "monthly" | "weekly";
+  dayOfMonth?: number;
+  startDate: string;
+  endDate?: string;
+  lastGeneratedDate?: string;
+  active: boolean;
+};
+
+export type Budget = {
+  id: string;
+  category: string;
+  monthlyLimit: number;
 };
 
 export type VaultMovement = {
@@ -78,6 +101,7 @@ type TransactionRow = {
   merchant: string | null;
   category: string;
   amount: number;
+  transfer_group_id: string | null;
   created_at: string;
 };
 type VaultRow = {
@@ -86,7 +110,29 @@ type VaultRow = {
   goal: number;
   color: string;
   account_id: string | null;
+  deadline: string | null;
   created_at: string;
+};
+
+type RecurringRow = {
+  id: string;
+  account_id: string;
+  description: string;
+  merchant: string | null;
+  category: string;
+  amount: number;
+  frequency: string;
+  day_of_month: number | null;
+  start_date: string;
+  end_date: string | null;
+  last_generated_date: string | null;
+  active: boolean;
+};
+
+type BudgetRow = {
+  id: string;
+  category: string;
+  monthly_limit: number;
 };
 type VaultMovementRow = {
   id: string;
@@ -112,6 +158,7 @@ const mapTransaction = (r: TransactionRow): Transaction => ({
   merchant: r.merchant ?? undefined,
   category: r.category,
   amount: Number(r.amount),
+  transferGroupId: r.transfer_group_id ?? undefined,
   createdAt: r.created_at,
 });
 const mapVault = (r: VaultRow): Vault => ({
@@ -120,7 +167,27 @@ const mapVault = (r: VaultRow): Vault => ({
   goal: Number(r.goal),
   color: r.color,
   accountId: r.account_id ?? undefined,
+  deadline: r.deadline ?? undefined,
   createdAt: r.created_at,
+});
+const mapRecurring = (r: RecurringRow): RecurringTransaction => ({
+  id: r.id,
+  accountId: r.account_id,
+  description: r.description,
+  merchant: r.merchant ?? undefined,
+  category: r.category,
+  amount: Number(r.amount),
+  frequency: (r.frequency as "monthly" | "weekly") ?? "monthly",
+  dayOfMonth: r.day_of_month ?? undefined,
+  startDate: r.start_date,
+  endDate: r.end_date ?? undefined,
+  lastGeneratedDate: r.last_generated_date ?? undefined,
+  active: r.active,
+});
+const mapBudget = (r: BudgetRow): Budget => ({
+  id: r.id,
+  category: r.category,
+  monthlyLimit: Number(r.monthly_limit),
 });
 const mapVaultMovement = (r: VaultMovementRow): VaultMovement => ({
   id: r.id,
@@ -134,7 +201,13 @@ const mapVaultMovement = (r: VaultMovementRow): VaultMovement => ({
 // Live queries with realtime --------------------------------------------------
 
 function useLive<T>(
-  table: "accounts" | "transactions" | "vaults" | "vault_movements",
+  table:
+    | "accounts"
+    | "transactions"
+    | "vaults"
+    | "vault_movements"
+    | "recurring_transactions"
+    | "budgets",
   fetcher: () => Promise<T>,
 ) {
   const [state, setState] = useState<T | null>(null);
@@ -193,6 +266,30 @@ export function useVaults(): Vault[] {
       .select("*")
       .order("created_at", { ascending: true });
     return (data ?? []).map(mapVault);
+  });
+  return data ?? [];
+}
+
+export function useRecurring(): RecurringTransaction[] {
+  const data = useLive<RecurringTransaction[]>("recurring_transactions", async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("recurring_transactions")
+      .select("*")
+      .order("created_at", { ascending: true });
+    return (data ?? []).map(mapRecurring);
+  });
+  return data ?? [];
+}
+
+export function useBudgets(): Budget[] {
+  const data = useLive<Budget[]>("budgets", async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("budgets")
+      .select("*")
+      .order("category", { ascending: true });
+    return (data ?? []).map(mapBudget);
   });
   return data ?? [];
 }
@@ -319,6 +416,7 @@ export async function addVault(input: {
   goal: number;
   color: string;
   accountId?: string;
+  deadline?: string;
 }) {
   const supabase = createClient();
   const user_id = await currentUserId();
@@ -328,6 +426,7 @@ export async function addVault(input: {
     goal: input.goal,
     color: input.color,
     account_id: input.accountId ?? null,
+    deadline: input.deadline ?? null,
   });
   if (error) throw error;
 }
@@ -356,19 +455,191 @@ export async function addVaultMovement(input: {
   if (error) throw error;
 }
 
+// Transfer ------------------------------------------------------------------
+
+export async function addTransfer(input: {
+  fromAccountId: string;
+  toAccountId: string;
+  amount: number;
+  date: string;
+  description?: string;
+}) {
+  if (input.fromAccountId === input.toAccountId)
+    throw new Error("Escolha contas diferentes");
+  if (input.amount <= 0) throw new Error("Valor inválido");
+  const supabase = createClient();
+  const user_id = await currentUserId();
+  const groupId = crypto.randomUUID();
+  const { error } = await supabase.from("transactions").insert([
+    {
+      user_id,
+      account_id: input.fromAccountId,
+      date: input.date,
+      description: input.description ?? "Transferência enviada",
+      category: "Transferência",
+      amount: -Math.abs(input.amount),
+      transfer_group_id: groupId,
+    },
+    {
+      user_id,
+      account_id: input.toAccountId,
+      date: input.date,
+      description: input.description ?? "Transferência recebida",
+      category: "Transferência",
+      amount: Math.abs(input.amount),
+      transfer_group_id: groupId,
+    },
+  ]);
+  if (error) throw error;
+}
+
+// Recurring -----------------------------------------------------------------
+
+export type RecurringInput = {
+  accountId: string;
+  description: string;
+  merchant?: string;
+  category: string;
+  amount: number;
+  frequency: "monthly" | "weekly";
+  dayOfMonth?: number;
+  startDate: string;
+  endDate?: string;
+};
+
+export async function addRecurring(input: RecurringInput) {
+  const supabase = createClient();
+  const user_id = await currentUserId();
+  const { error } = await supabase.from("recurring_transactions").insert({
+    user_id,
+    account_id: input.accountId,
+    description: input.description,
+    merchant: input.merchant ?? null,
+    category: input.category,
+    amount: input.amount,
+    frequency: input.frequency,
+    day_of_month: input.dayOfMonth ?? null,
+    start_date: input.startDate,
+    end_date: input.endDate ?? null,
+    active: true,
+  });
+  if (error) throw error;
+}
+
+export async function updateRecurring(id: string, patch: Partial<RecurringTransaction>) {
+  const supabase = createClient();
+  const row: Record<string, unknown> = {};
+  if (patch.description !== undefined) row.description = patch.description;
+  if (patch.merchant !== undefined) row.merchant = patch.merchant ?? null;
+  if (patch.category !== undefined) row.category = patch.category;
+  if (patch.amount !== undefined) row.amount = patch.amount;
+  if (patch.active !== undefined) row.active = patch.active;
+  if (patch.dayOfMonth !== undefined) row.day_of_month = patch.dayOfMonth;
+  const { error } = await supabase
+    .from("recurring_transactions")
+    .update(row)
+    .eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteRecurring(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("recurring_transactions")
+    .delete()
+    .eq("id", id);
+  if (error) throw error;
+}
+
+function addMonths(iso: string, n: number) {
+  const d = new Date(iso + "T12:00:00");
+  d.setMonth(d.getMonth() + n);
+  return d.toISOString().slice(0, 10);
+}
+function addDays(iso: string, n: number) {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+export async function materializeRecurring() {
+  const supabase = createClient();
+  const user_id = await currentUserId();
+  const today = new Date().toISOString().slice(0, 10);
+  const { data } = await supabase
+    .from("recurring_transactions")
+    .select("*")
+    .eq("active", true);
+  const rows = (data ?? []) as RecurringRow[];
+  for (const r of rows) {
+    let cursor = r.last_generated_date ?? r.start_date;
+    // Compute next date from cursor
+    const step = (iso: string) =>
+      r.frequency === "weekly" ? addDays(iso, 7) : addMonths(iso, 1);
+    // If never generated, we want to check whether the first occurrence (start_date) is due
+    let next = r.last_generated_date ? step(cursor) : r.start_date;
+    const inserts: Record<string, unknown>[] = [];
+    while (next <= today && (!r.end_date || next <= r.end_date)) {
+      inserts.push({
+        user_id,
+        account_id: r.account_id,
+        date: next,
+        description: r.description,
+        merchant: r.merchant,
+        category: r.category,
+        amount: r.amount,
+      });
+      cursor = next;
+      next = step(cursor);
+    }
+    if (inserts.length > 0) {
+      const { error: insErr } = await supabase.from("transactions").insert(inserts);
+      if (insErr) continue;
+      await supabase
+        .from("recurring_transactions")
+        .update({ last_generated_date: cursor })
+        .eq("id", r.id);
+    }
+  }
+}
+
+// Budgets -------------------------------------------------------------------
+
+export async function upsertBudget(category: string, monthlyLimit: number) {
+  const supabase = createClient();
+  const user_id = await currentUserId();
+  const { error } = await supabase
+    .from("budgets")
+    .upsert(
+      { user_id, category, monthly_limit: monthlyLimit },
+      { onConflict: "user_id,category" },
+    );
+  if (error) throw error;
+}
+
+export async function deleteBudget(id: string) {
+  const supabase = createClient();
+  const { error } = await supabase.from("budgets").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function exportAll() {
   const supabase = createClient();
-  const [a, t, v, m] = await Promise.all([
+  const [a, t, v, m, r, b] = await Promise.all([
     supabase.from("accounts").select("*"),
     supabase.from("transactions").select("*"),
     supabase.from("vaults").select("*"),
     supabase.from("vault_movements").select("*"),
+    supabase.from("recurring_transactions").select("*"),
+    supabase.from("budgets").select("*"),
   ]);
   return {
     accounts: a.data ?? [],
     transactions: t.data ?? [],
     vaults: v.data ?? [],
     vaultMovements: m.data ?? [],
+    recurring: r.data ?? [],
+    budgets: b.data ?? [],
   };
 }
 

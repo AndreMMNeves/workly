@@ -12,6 +12,7 @@ import {
 } from "@/lib/data";
 import { brl } from "@/lib/format";
 import { useHideValues } from "@/lib/hideValues";
+import { useToast } from "@/lib/toast";
 import AccountCard from "./AccountCard";
 import HideValuesToggle from "./HideValuesToggle";
 
@@ -96,6 +97,7 @@ export default function ContasPage() {
 }
 
 function AccountForm({ account, onClose }: { account?: Account; onClose: () => void }) {
+  const toast = useToast();
   const [form, setForm] = useState({
     name: account?.name ?? "",
     color: account?.color ?? PALETTE[0],
@@ -123,9 +125,10 @@ function AccountForm({ account, onClose }: { account?: Account; onClose: () => v
           openingBalance: opening,
         });
       }
+      toast.success("Conta salva");
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erro ao salvar");
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSaving(false);
     }

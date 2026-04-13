@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import MobileNav from "@/components/MobileNav";
 import SeedBoot from "@/components/SeedBoot";
 import { createClient } from "@/lib/supabase/server";
 import { HideValuesProvider } from "@/lib/hideValues";
+import { ToastProvider } from "@/lib/toast";
 
 export default async function AppLayout({
   children,
@@ -16,14 +18,17 @@ export default async function AppLayout({
   if (!user) redirect("/login");
 
   return (
-    <HideValuesProvider>
-      <SeedBoot />
-      <div className="flex min-h-screen">
-        <Sidebar userEmail={user.email ?? ""} />
-        <main className="flex-1 p-4 md:p-8 max-w-[1400px] mx-auto w-full">
-          {children}
-        </main>
-      </div>
-    </HideValuesProvider>
+    <ToastProvider>
+      <HideValuesProvider>
+        <SeedBoot />
+        <div className="flex min-h-screen">
+          <Sidebar userEmail={user.email ?? ""} />
+          <main className="flex-1 p-4 md:p-8 max-w-[1400px] mx-auto w-full pb-24 md:pb-8">
+            {children}
+          </main>
+        </div>
+        <MobileNav />
+      </HideValuesProvider>
+    </ToastProvider>
   );
 }

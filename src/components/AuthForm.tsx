@@ -96,21 +96,28 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
       >
         {loading ? "..." : mode === "login" ? "Entrar" : "Criar conta"}
       </button>
-      <div className="mt-4 text-center text-xs text-[var(--muted)]">
+      <div className="mt-4 text-center text-xs text-[var(--muted)] space-y-2">
         {mode === "login" ? (
           <>
-            Não tem conta?{" "}
-            <Link href="/signup" className="text-[var(--accent)] hover:underline">
-              Criar conta
-            </Link>
+            <div>
+              Não tem conta?{" "}
+              <Link href="/signup" className="text-[var(--accent)] hover:underline">
+                Criar conta
+              </Link>
+            </div>
+            <div>
+              <Link href="/forgot-password" className="hover:text-foreground">
+                Esqueci minha senha
+              </Link>
+            </div>
           </>
         ) : (
-          <>
+          <div>
             Já tem conta?{" "}
             <Link href="/login" className="text-[var(--accent)] hover:underline">
               Entrar
             </Link>
-          </>
+          </div>
         )}
       </div>
     </form>

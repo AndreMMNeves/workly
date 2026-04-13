@@ -96,8 +96,71 @@ create policy "vmov_insert_own" on public.vault_movements for insert with check 
 create policy "vmov_update_own" on public.vault_movements for update using (auth.uid() = user_id);
 create policy "vmov_delete_own" on public.vault_movements for delete using (auth.uid() = user_id);
 
--- Realtime ------------------------------------------------------------------
-alter publication supabase_realtime add table public.accounts;
-alter publication supabase_realtime add table public.transactions;
-alter publication supabase_realtime add table public.vaults;
-alter publication supabase_realtime add table public.vault_movements;
+-- Transfers (links the two sides of a transfer) ----------------------------
+alter table public.transactions
+  add column if not exists transfer_group_id uuid;
+
+-- Recurring transactions ----------------------------------------------------
+create table if not exists public.recurring_transactions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  account_id text not null references public.accounts(id) on delete cascade,
+  description text not null default '',
+  merchant text,
+  category text not null,
+  amount numeric not null,
+  frequency text not null default 'monthly',
+  day_of_month int,
+  start_date date not null,
+  end_date date,
+  last_generated_date date,
+  active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+create index if not exists recurring_user_idx on public.recurring_transactions(user_id);
+
+alter table public.recurring_transactions enable row level security;
+drop policy if exists "rec_select_own" on public.recurring_transactions;
+drop policy if exists "rec_insert_own" on public.recurring_transactions;
+drop policy if exists "rec_update_own" on public.recurring_transactions;
+drop policy if exists "rec_delete_own" on public.recurring_transactions;
+create policy "rec_select_own" on public.recurring_transactions for select using (auth.uid() = user_id);
+create policy "rec_insert_own" on public.recurring_transactions for insert with check (auth.uid() = user_id);
+create policy "rec_update_own" on public.recurring_transactions for update using (auth.uid() = user_id);
+create policy "rec_delete_own" on public.recurring_transactions for delete using (auth.uid() = user_id);
+
+-- Budgets -------------------------------------------------------------------
+create table if not exists public.budgets (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  category text not null,
+  monthly_limit numeric not null,
+  created_at timestamptz not null default now(),
+  unique (user_id, category)
+);
+create index if not exists budgets_user_idx on public.budgets(user_id);
+
+alter table public.budgets enable row level security;
+drop policy if exists "budgets_select_own" on public.budgets;
+drop policy if exists "budgets_insert_own" on public.budgets;
+drop policy if exists "budgets_update_own" on public.budgets;
+drop policy if exists "budgets_delete_own" on public.budgets;
+create policy "budgets_select_own" on public.budgets for select using (auth.uid() = user_id);
+create policy "budgets_insert_own" on public.budgets for insert with check (auth.uid() = user_id);
+create policy "budgets_update_own" on public.budgets for update using (auth.uid() = user_id);
+create policy "budgets_delete_own" on public.budgets for delete using (auth.uid() = user_id);
+
+-- Vault deadline ------------------------------------------------------------
+alter table public.vaults
+  add column if not exists deadline date;
+
+-- Realtime (idempotent) ----------------------------------------------------
+do $$
+begin
+  begin alter publication supabase_realtime add table public.accounts; exception when duplicate_object then null; end;
+  begin alter publication supabase_realtime add table public.transactions; exception when duplicate_object then null; end;
+  begin alter publication supabase_realtime add table public.vaults; exception when duplicate_object then null; end;
+  begin alter publication supabase_realtime add table public.vault_movements; exception when duplicate_object then null; end;
+  begin alter publication supabase_realtime add table public.recurring_transactions; exception when duplicate_object then null; end;
+  begin alter publication supabase_realtime add table public.budgets; exception when duplicate_object then null; end;
+end $$;

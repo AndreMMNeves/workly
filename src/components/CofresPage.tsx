@@ -11,10 +11,12 @@ import {
   type Vault,
 } from "@/lib/data";
 import { brl, shortDate } from "@/lib/format";
+import { useToast } from "@/lib/toast";
 
 const PALETTE = ["#34e3b0", "#8a2be2", "#0072c6", "#f5a524", "#ef6b6b", "#f06292"];
 
 export default function CofresPage() {
+  const toast = useToast();
   const accounts = useAccounts();
   const vaults = useVaults();
   const movements = useVaultMovements();
@@ -24,6 +26,22 @@ export default function CofresPage() {
 
   const balanceOf = (id: string) =>
     movements.filter((m) => m.vaultId === id).reduce((a, b) => a + b.amount, 0);
+
+  function projection(vault: Vault, balance: number) {
+    if (!vault.deadline || vault.goal <= 0) return null;
+    const today = new Date();
+    const deadline = new Date(vault.deadline + "T12:00:00");
+    const daysLeft = Math.max(0, Math.round((deadline.getTime() - today.getTime()) / 86400000));
+    const missing = Math.max(0, vault.goal - balance);
+    if (daysLeft === 0) {
+      return missing === 0 ? "Meta atingida" : `Faltam ${brl(missing)} e o prazo acabou`;
+    }
+    const monthsLeft = Math.max(1, Math.round(daysLeft / 30));
+    const perMonth = missing / monthsLeft;
+    return missing === 0
+      ? "Meta atingida"
+      : `${brl(perMonth)}/mês por ${monthsLeft} ${monthsLeft === 1 ? "mês" : "meses"}`;
+  }
 
   return (
     <>
@@ -51,6 +69,7 @@ export default function CofresPage() {
           {vaults.map((v) => {
             const bal = balanceOf(v.id);
             const pct = v.goal > 0 ? Math.min(100, (bal / v.goal) * 100) : 0;
+            const proj = projection(v, bal);
             return (
               <div
                 key={v.id}
@@ -60,7 +79,10 @@ export default function CofresPage() {
                   <div className="h-10 w-10 rounded-xl" style={{ background: v.color }} />
                   <div className="flex-1">
                     <div className="font-semibold">{v.name}</div>
-                    <div className="text-xs text-[var(--muted)]">Meta {brl(v.goal)}</div>
+                    <div className="text-xs text-[var(--muted)]">
+                      Meta {brl(v.goal)}
+                      {v.deadline ? ` · até ${shortDate(v.deadline)}` : ""}
+                    </div>
                   </div>
                 </div>
                 <div className="mt-4">
@@ -69,6 +91,9 @@ export default function CofresPage() {
                     <div className="h-full" style={{ width: `${pct}%`, background: v.color }} />
                   </div>
                   <div className="mt-1 text-xs text-[var(--muted)]">{pct.toFixed(0)}% da meta</div>
+                  {proj && (
+                    <div className="mt-1 text-xs text-[var(--accent)]">{proj}</div>
+                  )}
                 </div>
                 <div className="mt-4 flex gap-2">
                   <button
@@ -126,11 +151,13 @@ export default function CofresPage() {
 }
 
 function VaultForm({ onClose, accounts }: { onClose: () => void; accounts: ReturnType<typeof useAccounts> }) {
+  const toast = useToast();
   const [form, setForm] = useState({
     name: "",
     goal: "",
     color: PALETTE[0],
     accountId: accounts[0]?.id ?? "",
+    deadline: "",
   });
   const [saving, setSaving] = useState(false);
 
@@ -144,10 +171,12 @@ function VaultForm({ onClose, accounts }: { onClose: () => void; accounts: Retur
         goal: Number(form.goal.replace(",", ".")) || 0,
         color: form.color,
         accountId: form.accountId || undefined,
+        deadline: form.deadline || undefined,
       });
+      toast.success("Cofre criado");
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erro ao salvar");
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSaving(false);
     }
@@ -171,6 +200,14 @@ function VaultForm({ onClose, accounts }: { onClose: () => void; accounts: Retur
             onChange={(e) => setForm({ ...form, goal: e.target.value })}
             className="w-full rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
             placeholder="0,00"
+          />
+        </Field>
+        <Field label="Prazo (opcional)">
+          <input
+            type="date"
+            value={form.deadline}
+            onChange={(e) => setForm({ ...form, deadline: e.target.value })}
+            className="w-full rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
           />
         </Field>
         <Field label="Cor">
@@ -207,6 +244,7 @@ function MovementForm({
   type: "deposit" | "withdraw";
   onClose: () => void;
 }) {
+  const toast = useToast();
   const [amount, setAmount] = useState("");
   const [note, setNote] = useState("");
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -224,9 +262,10 @@ function MovementForm({
         date,
         note: note || undefined,
       });
+      toast.success(type === "deposit" ? "Depositado" : "Retirado");
       onClose();
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Erro ao salvar");
+      toast.error(err instanceof Error ? err.message : "Erro ao salvar");
     } finally {
       setSaving(false);
     }

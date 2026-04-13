@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Button from "./ui/Button";
+import { FieldWrap, Input } from "./ui/Field";
 
 export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -28,7 +31,10 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
           return;
         }
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
         if (error) throw error;
       }
       router.replace("/");
@@ -43,70 +49,80 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   return (
     <form
       onSubmit={submit}
-      className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8"
+      className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-2xl"
     >
-      <div className="flex items-center gap-2 mb-6">
-        <div className="h-9 w-9 rounded-lg bg-[var(--accent)] grid place-items-center text-[var(--background)] font-bold">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-strong)] grid place-items-center text-[var(--background)] font-bold text-lg shadow-lg shadow-[var(--accent)]/20">
           W
         </div>
         <div>
-          <div className="font-semibold">Workly</div>
+          <div className="font-semibold text-[15px]">Workly</div>
           <div className="text-xs text-[var(--muted)]">
             {mode === "login" ? "Entre na sua conta" : "Crie sua conta"}
           </div>
         </div>
       </div>
-      <label className="flex flex-col gap-1 text-sm">
-        <span className="text-[var(--muted)] text-xs">Email</span>
-        <input
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-          autoComplete="email"
-        />
-      </label>
-      <label className="mt-3 flex flex-col gap-1 text-sm">
-        <span className="text-[var(--muted)] text-xs">Senha</span>
-        <input
-          type="password"
-          required
-          minLength={6}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-        />
-      </label>
+      <div className="space-y-4">
+        <FieldWrap label="Email">
+          <Input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+            placeholder="voce@exemplo.com"
+          />
+        </FieldWrap>
+        <FieldWrap label="Senha">
+          <Input
+            type="password"
+            required
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            placeholder="••••••••"
+          />
+        </FieldWrap>
+      </div>
       {error && (
-        <div className="mt-3 rounded-lg border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-3 py-2 text-xs text-[var(--danger)]">
-          {error}
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-3 py-2.5 text-xs text-[var(--danger)]">
+          <AlertCircle size={14} className="shrink-0 mt-0.5" />
+          <span>{error}</span>
         </div>
       )}
       {info && (
-        <div className="mt-3 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-2 text-xs text-[var(--accent)]">
-          {info}
+        <div className="mt-4 flex items-start gap-2 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-2.5 text-xs text-[var(--accent)]">
+          <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
+          <span>{info}</span>
         </div>
       )}
-      <button
+      <Button
         type="submit"
-        disabled={loading}
-        className="mt-5 w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)] disabled:opacity-60"
+        loading={loading}
+        fullWidth
+        size="lg"
+        className="mt-6"
       >
-        {loading ? "..." : mode === "login" ? "Entrar" : "Criar conta"}
-      </button>
-      <div className="mt-4 text-center text-xs text-[var(--muted)] space-y-2">
+        {loading ? "Aguarde..." : mode === "login" ? "Entrar" : "Criar conta"}
+      </Button>
+      <div className="mt-5 text-center text-xs text-[var(--muted)] space-y-2">
         {mode === "login" ? (
           <>
             <div>
               Não tem conta?{" "}
-              <Link href="/signup" className="text-[var(--accent)] hover:underline">
+              <Link
+                href="/signup"
+                className="text-[var(--accent)] hover:underline font-medium"
+              >
                 Criar conta
               </Link>
             </div>
             <div>
-              <Link href="/forgot-password" className="hover:text-foreground">
+              <Link
+                href="/forgot-password"
+                className="hover:text-foreground transition-colors"
+              >
                 Esqueci minha senha
               </Link>
             </div>
@@ -114,7 +130,10 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
         ) : (
           <div>
             Já tem conta?{" "}
-            <Link href="/login" className="text-[var(--accent)] hover:underline">
+            <Link
+              href="/login"
+              className="text-[var(--accent)] hover:underline font-medium"
+            >
               Entrar
             </Link>
           </div>

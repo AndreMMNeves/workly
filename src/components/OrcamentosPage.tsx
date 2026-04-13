@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Plus, Target, Trash2 } from "lucide-react";
 import {
   DEFAULT_CATEGORIES,
   deleteBudget,
@@ -10,6 +11,12 @@ import {
 } from "@/lib/data";
 import { brl, monthKey } from "@/lib/format";
 import { useToast } from "@/lib/toast";
+import Button from "./ui/Button";
+import Dialog from "./ui/Dialog";
+import EmptyState from "./ui/EmptyState";
+import { FieldWrap, Select } from "./ui/Field";
+import MoneyInput, { parseBRL } from "./ui/MoneyInput";
+import PageHeader from "./ui/PageHeader";
 
 export default function OrcamentosPage() {
   const toast = useToast();
@@ -47,38 +54,60 @@ export default function OrcamentosPage() {
 
   return (
     <>
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Orçamentos</h1>
-          <p className="text-sm text-[var(--muted)]">
-            Defina limites por categoria e acompanhe o progresso do mês.
-          </p>
-        </div>
-        <button
-          onClick={() => setCreating(true)}
-          className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)]"
-        >
-          + Novo orçamento
-        </button>
-      </header>
+      <PageHeader
+        title="Orçamentos"
+        description="Defina limites por categoria e acompanhe o progresso do mês."
+        actions={
+          <Button
+            onClick={() => setCreating(true)}
+            leftIcon={<Plus size={16} strokeWidth={2.5} />}
+          >
+            Novo orçamento
+          </Button>
+        }
+      />
 
       {budgets.length > 0 && (
-        <section className="mt-6 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-[var(--muted)]">Total do mês</span>
-            <span>
-              <span className="text-foreground font-semibold">{brl(totalSpent)}</span>{" "}
-              <span className="text-[var(--muted)]">/ {brl(totalLimit)}</span>
-            </span>
+        <section className="mt-6 rounded-2xl border border-[var(--border)] bg-gradient-to-br from-[var(--surface)] to-[var(--surface-2)] p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-medium">
+                Total do mês
+              </div>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-3xl font-semibold tabular-nums">
+                  {brl(totalSpent)}
+                </span>
+                <span className="text-sm text-[var(--muted)]">
+                  / {brl(totalLimit)}
+                </span>
+              </div>
+            </div>
+            <div className="text-right text-xs text-[var(--muted)]">
+              {totalLimit > 0 &&
+                `${Math.round((totalSpent / totalLimit) * 100)}%`}
+            </div>
           </div>
-          <ProgressBar value={totalSpent} max={totalLimit} />
+          <ProgressBar value={totalSpent} max={totalLimit} className="mt-4" />
         </section>
       )}
 
       <section className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
         {budgets.length === 0 ? (
-          <div className="md:col-span-2 rounded-2xl border border-dashed border-[var(--border)] p-12 text-center text-sm text-[var(--muted)]">
-            Nenhum orçamento ainda. Crie um pra começar.
+          <div className="md:col-span-2">
+            <EmptyState
+              icon={<Target size={22} />}
+              title="Nenhum orçamento ainda"
+              description="Crie um orçamento por categoria pra começar a acompanhar seus limites."
+              action={
+                <Button
+                  onClick={() => setCreating(true)}
+                  leftIcon={<Plus size={16} strokeWidth={2.5} />}
+                >
+                  Criar orçamento
+                </Button>
+              }
+            />
           </div>
         ) : (
           budgets.map((b) => {
@@ -88,33 +117,46 @@ export default function OrcamentosPage() {
             return (
               <div
                 key={b.id}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"
+                className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 hover:border-[var(--border-strong)] transition-colors"
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <div className="font-semibold">{b.category}</div>
-                    <div className="text-xs text-[var(--muted)]">
+                    <div className="font-semibold text-[15px]">
+                      {b.category}
+                    </div>
+                    <div className="text-xs text-[var(--muted)] mt-0.5">
                       Limite mensal {brl(b.monthlyLimit)}
                     </div>
                   </div>
                   <button
                     onClick={() => remove(b.id)}
-                    className="text-xs text-[var(--muted)] hover:text-[var(--danger)]"
+                    aria-label="Excluir"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity rounded-lg p-1.5 text-[var(--muted)] hover:text-[var(--danger)] hover:bg-[var(--danger)]/10 outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
                   >
-                    Excluir
+                    <Trash2 size={14} />
                   </button>
                 </div>
                 <div className="mt-4 flex items-baseline justify-between">
-                  <div className="text-2xl font-semibold">{brl(spent)}</div>
+                  <div className="text-2xl font-semibold tabular-nums">
+                    {brl(spent)}
+                  </div>
                   <div
-                    className={`text-xs font-medium ${
-                      over ? "text-[var(--danger)]" : "text-[var(--muted)]"
+                    className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      over
+                        ? "text-[var(--danger)] bg-[var(--danger)]/15"
+                        : pct > 80
+                          ? "text-[var(--warning)] bg-[var(--warning)]/15"
+                          : "text-[var(--accent)] bg-[var(--accent)]/15"
                     }`}
                   >
                     {pct.toFixed(0)}%
                   </div>
                 </div>
-                <ProgressBar value={spent} max={b.monthlyLimit} />
+                <ProgressBar
+                  value={spent}
+                  max={b.monthlyLimit}
+                  className="mt-3"
+                />
                 <div className="mt-2 text-xs text-[var(--muted)]">
                   {over
                     ? `Excedeu em ${brl(spent - b.monthlyLimit)}`
@@ -126,44 +168,73 @@ export default function OrcamentosPage() {
         )}
       </section>
 
-      {creating && <BudgetForm onClose={() => setCreating(false)} />}
+      <BudgetForm open={creating} onClose={() => setCreating(false)} />
     </>
   );
 }
 
-function ProgressBar({ value, max }: { value: number; max: number }) {
+function ProgressBar({
+  value,
+  max,
+  className = "",
+}: {
+  value: number;
+  max: number;
+  className?: string;
+}) {
   const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
   const over = max > 0 && value > max;
+  const nearLimit = pct > 80 && !over;
   return (
-    <div className="mt-3 h-2 rounded-full bg-[var(--surface-2)] overflow-hidden">
+    <div
+      className={`h-2 rounded-full bg-[var(--surface-2)] overflow-hidden ${className}`}
+    >
       <div
-        className="h-full transition-all"
+        className="h-full rounded-full transition-[width] duration-500 ease-out"
         style={{
           width: `${pct}%`,
-          background: over ? "var(--danger)" : "var(--accent)",
+          background: over
+            ? "var(--danger)"
+            : nearLimit
+              ? "var(--warning)"
+              : "var(--accent)",
         }}
       />
     </div>
   );
 }
 
-function BudgetForm({ onClose }: { onClose: () => void }) {
+function BudgetForm({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
   const toast = useToast();
   const budgets = useBudgets();
   const existing = new Set(budgets.map((b) => b.category));
   const available = DEFAULT_CATEGORIES.filter((c) => !existing.has(c));
-  const [category, setCategory] = useState(available[0] ?? DEFAULT_CATEGORIES[0]);
+  const [category, setCategory] = useState(
+    available[0] ?? DEFAULT_CATEGORIES[0],
+  );
   const [limit, setLimit] = useState("");
   const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  const limitValue = parseBRL(limit);
+  const limitInvalid = touched && limitValue <= 0;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const n = Number(limit.replace(",", "."));
-    if (!n) return;
+    setTouched(true);
+    if (limitValue <= 0) return;
     setSaving(true);
     try {
-      await upsertBudget(category, n);
+      await upsertBudget(category, limitValue);
       toast.success("Orçamento salvo");
+      setLimit("");
+      setTouched(false);
       onClose();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro ao salvar");
@@ -173,50 +244,52 @@ function BudgetForm({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-      <form
-        onSubmit={submit}
-        className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"
-      >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Novo orçamento</h2>
-          <button type="button" onClick={onClose} className="text-[var(--muted)]">
-            ✕
-          </button>
-        </div>
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-[var(--muted)] text-xs">Categoria</span>
-          <select
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Novo orçamento"
+      description="Define um limite de gastos mensal para uma categoria"
+      size="sm"
+    >
+      <form onSubmit={submit} className="space-y-4">
+        <FieldWrap label="Categoria">
+          <Select
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
           >
             {DEFAULT_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
             ))}
-          </select>
-        </label>
-        <label className="mt-3 flex flex-col gap-1 text-sm">
-          <span className="text-[var(--muted)] text-xs">Limite mensal (R$)</span>
-          <input
-            inputMode="decimal"
-            value={limit}
-            onChange={(e) => setLimit(e.target.value)}
-            placeholder="0,00"
-            className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-            required
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={saving}
-          className="mt-5 w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)] disabled:opacity-60"
+          </Select>
+        </FieldWrap>
+        <FieldWrap
+          label="Limite mensal"
+          required
+          error={limitInvalid ? "Informe um valor válido" : undefined}
         >
-          {saving ? "Salvando..." : "Salvar"}
-        </button>
+          <MoneyInput
+            value={limit}
+            onChange={setLimit}
+            invalid={limitInvalid}
+            autoFocus
+          />
+        </FieldWrap>
+        <div className="flex gap-2 pt-2">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={onClose}
+            fullWidth
+          >
+            Cancelar
+          </Button>
+          <Button type="submit" loading={saving} fullWidth>
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </div>
       </form>
-    </div>
+    </Dialog>
   );
 }

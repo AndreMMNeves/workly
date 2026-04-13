@@ -2,17 +2,28 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import {
+  LayoutDashboard,
+  Wallet,
+  ArrowLeftRight,
+  Repeat,
+  Target,
+  BarChart3,
+  PiggyBank,
+  Settings,
+  LogOut,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const items = [
-  { href: "/", label: "Overview", icon: "◎" },
-  { href: "/contas", label: "Contas", icon: "▦" },
-  { href: "/transacoes", label: "Transações", icon: "⇅" },
-  { href: "/recorrentes", label: "Recorrentes", icon: "↻" },
-  { href: "/orcamentos", label: "Orçamentos", icon: "◈" },
-  { href: "/relatorios", label: "Relatórios", icon: "◢" },
-  { href: "/cofres", label: "Cofres", icon: "✦" },
-  { href: "/ajustes", label: "Ajustes", icon: "⚙" },
+  { href: "/", label: "Overview", icon: LayoutDashboard },
+  { href: "/contas", label: "Contas", icon: Wallet },
+  { href: "/transacoes", label: "Transações", icon: ArrowLeftRight },
+  { href: "/recorrentes", label: "Recorrentes", icon: Repeat },
+  { href: "/orcamentos", label: "Orçamentos", icon: Target },
+  { href: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { href: "/cofres", label: "Cofres", icon: PiggyBank },
+  { href: "/ajustes", label: "Ajustes", icon: Settings },
 ];
 
 export default function Sidebar({ userEmail }: { userEmail: string }) {
@@ -27,37 +38,50 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
   }
 
   return (
-    <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] p-4">
-      <Link href="/" className="flex items-center gap-2 px-2 py-3">
-        <div className="h-8 w-8 rounded-lg bg-[var(--accent)] grid place-items-center text-[var(--background)] font-bold">
+    <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur-xl p-4">
+      <Link
+        href="/"
+        className="flex items-center gap-2.5 px-2 py-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded-lg"
+      >
+        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-strong)] grid place-items-center text-[var(--background)] font-bold shadow-lg shadow-[var(--accent)]/20">
           W
         </div>
-        <span className="font-semibold tracking-tight">Workly</span>
+        <span className="font-semibold tracking-tight text-[15px]">
+          Workly
+        </span>
       </Link>
-      <nav className="mt-6 flex flex-col gap-1">
+      <nav className="mt-6 flex flex-col gap-0.5">
         {items.map((it) => {
+          const Icon = it.icon;
           const isActive =
             it.href === "/" ? pathname === "/" : pathname.startsWith(it.href);
           return (
             <Link
               key={it.href}
               href={it.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-all outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] ${
                 isActive
-                  ? "bg-[var(--accent)] text-[var(--background)] font-medium"
+                  ? "bg-[var(--accent)] text-[var(--background)] font-semibold shadow-md shadow-[var(--accent)]/20"
                   : "text-[var(--muted)] hover:bg-[var(--surface-2)] hover:text-foreground"
               }`}
             >
-              <span className="text-base">{it.icon}</span>
+              <Icon
+                size={18}
+                className={
+                  isActive
+                    ? ""
+                    : "text-[var(--muted)] group-hover:text-foreground transition-colors"
+                }
+              />
               {it.label}
             </Link>
           );
         })}
       </nav>
       <div className="mt-auto">
-        <div className="flex items-center gap-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] p-2">
+        <div className="flex items-center gap-2 rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] p-2.5">
           <div
-            className="h-9 w-9 shrink-0 rounded-lg bg-[var(--accent)] grid place-items-center text-[var(--background)] text-sm font-bold"
+            className="h-9 w-9 shrink-0 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-strong)] grid place-items-center text-[var(--background)] text-sm font-bold"
             aria-hidden
           >
             {userEmail.charAt(0).toUpperCase() || "?"}
@@ -74,22 +98,9 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
             onClick={signOut}
             title="Sair"
             aria-label="Sair"
-            className="shrink-0 rounded-lg p-2 text-[var(--muted)] hover:text-[var(--danger)] hover:bg-[var(--surface)] transition-colors"
+            className="shrink-0 rounded-lg p-2 text-[var(--muted)] hover:text-[var(--danger)] hover:bg-[var(--surface)] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)]"
           >
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
+            <LogOut size={16} />
           </button>
         </div>
       </div>

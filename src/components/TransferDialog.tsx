@@ -1,10 +1,19 @@
 "use client";
 
 import { useState } from "react";
+import { ArrowRight, ArrowLeftRight } from "lucide-react";
 import { addTransfer, type Account } from "@/lib/data";
 import { useToast } from "@/lib/toast";
+import Button from "./ui/Button";
+import Dialog from "./ui/Dialog";
+import { FieldWrap, Input, Select } from "./ui/Field";
+import MoneyInput, { parseBRL } from "./ui/MoneyInput";
 
-export default function TransferDialog({ accounts }: { accounts: Account[] }) {
+export default function TransferDialog({
+  accounts,
+}: {
+  accounts: Account[];
+}) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
@@ -15,23 +24,31 @@ export default function TransferDialog({ accounts }: { accounts: Account[] }) {
     description: "",
   });
   const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState(false);
+
+  const fromAccount = accounts.find((a) => a.id === form.from);
+  const toAccount = accounts.find((a) => a.id === form.to);
+  const sameAccount = form.from === form.to;
+  const amountValue = parseBRL(form.amount);
+  const amountInvalid = touched && amountValue <= 0;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const n = Number(form.amount.replace(",", "."));
-    if (!n) return;
+    setTouched(true);
+    if (amountValue <= 0 || sameAccount) return;
     setSaving(true);
     try {
       await addTransfer({
         fromAccountId: form.from,
         toAccountId: form.to,
-        amount: n,
+        amount: amountValue,
         date: form.date,
         description: form.description || undefined,
       });
       toast.success("Transferência realizada");
       setOpen(false);
       setForm({ ...form, amount: "", description: "" });
+      setTouched(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro na transferência");
     } finally {
@@ -39,98 +56,138 @@ export default function TransferDialog({ accounts }: { accounts: Account[] }) {
     }
   }
 
+  function swap() {
+    setForm({ ...form, from: form.to, to: form.from });
+  }
+
   return (
     <>
-      <button
+      <Button
+        variant="secondary"
         onClick={() => setOpen(true)}
-        className="rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-foreground hover:bg-[var(--surface-2)]"
+        leftIcon={<ArrowLeftRight size={16} />}
       >
-        ↔ Transferir
-      </button>
-      {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-          <form
-            onSubmit={submit}
-            className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Transferir entre contas</h2>
+        Transferir
+      </Button>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Transferir entre contas"
+        description="Movimente dinheiro sem criar despesa ou receita"
+      >
+        <form onSubmit={submit} className="space-y-4">
+          {/* From → To visual */}
+          <div className="rounded-2xl bg-[var(--surface-2)] border border-[var(--border)] p-4 space-y-3">
+            <FieldWrap label="De">
+              <Select
+                value={form.from}
+                onChange={(e) => setForm({ ...form, from: e.target.value })}
+              >
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </Select>
+            </FieldWrap>
+            <div className="flex items-center justify-center">
               <button
                 type="button"
-                onClick={() => setOpen(false)}
-                className="text-[var(--muted)]"
+                onClick={swap}
+                title="Inverter contas"
+                aria-label="Inverter contas"
+                className="grid place-items-center h-9 w-9 rounded-full bg-[var(--surface)] border border-[var(--border)] text-[var(--muted)] hover:text-[var(--accent)] hover:border-[var(--accent)]/40 transition-all outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
               >
-                ✕
+                <ArrowRight
+                  size={16}
+                  className="rotate-90 transition-transform"
+                />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <label className="flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">De</span>
-                <select
-                  value={form.from}
-                  onChange={(e) => setForm({ ...form, from: e.target.value })}
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                >
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Para</span>
-                <select
-                  value={form.to}
-                  onChange={(e) => setForm({ ...form, to: e.target.value })}
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                >
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Valor (R$)</span>
-                <input
-                  inputMode="decimal"
-                  value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                  placeholder="0,00"
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Data</span>
-                <input
-                  type="date"
-                  value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                />
-              </label>
-              <label className="col-span-2 flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Descrição (opcional)</span>
-                <input
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Ex.: Pagamento cartão"
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                />
-              </label>
+            <FieldWrap
+              label="Para"
+              error={sameAccount ? "Selecione contas diferentes" : undefined}
+            >
+              <Select
+                value={form.to}
+                onChange={(e) => setForm({ ...form, to: e.target.value })}
+              >
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </Select>
+            </FieldWrap>
+          </div>
+
+          {fromAccount && toAccount && !sameAccount && (
+            <div className="flex items-center justify-center gap-2 text-xs text-[var(--muted)]">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ background: fromAccount.color }}
+              />
+              <span>{fromAccount.name}</span>
+              <ArrowRight size={12} />
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ background: toAccount.color }}
+              />
+              <span>{toAccount.name}</span>
             </div>
-            <button
+          )}
+
+          <FieldWrap
+            label="Valor"
+            required
+            error={amountInvalid ? "Informe um valor válido" : undefined}
+          >
+            <MoneyInput
+              value={form.amount}
+              onChange={(v) => setForm({ ...form, amount: v })}
+              invalid={amountInvalid}
+              autoFocus
+            />
+          </FieldWrap>
+
+          <FieldWrap label="Data">
+            <Input
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+            />
+          </FieldWrap>
+
+          <FieldWrap label="Descrição (opcional)">
+            <Input
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="Ex.: Pagamento cartão"
+            />
+          </FieldWrap>
+
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setOpen(false)}
+              fullWidth
+            >
+              Cancelar
+            </Button>
+            <Button
               type="submit"
-              disabled={saving}
-              className="mt-5 w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)] disabled:opacity-60"
+              loading={saving}
+              disabled={sameAccount}
+              fullWidth
             >
               {saving ? "Transferindo..." : "Confirmar"}
-            </button>
-          </form>
-        </div>
-      )}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </>
   );
 }

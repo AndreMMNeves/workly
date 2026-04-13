@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Button from "./ui/Button";
+import { FieldWrap, Input } from "./ui/Field";
 
 export default function ForgotPasswordForm() {
   const [email, setEmail] = useState("");
@@ -31,49 +34,58 @@ export default function ForgotPasswordForm() {
   return (
     <form
       onSubmit={submit}
-      className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8"
+      className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 shadow-2xl"
     >
-      <div className="flex items-center gap-2 mb-6">
-        <div className="h-9 w-9 rounded-lg bg-[var(--accent)] grid place-items-center text-[var(--background)] font-bold">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-[var(--accent)] to-[var(--accent-strong)] grid place-items-center text-[var(--background)] font-bold text-lg shadow-lg shadow-[var(--accent)]/20">
           W
         </div>
         <div>
-          <div className="font-semibold">Workly</div>
+          <div className="font-semibold text-[15px]">Workly</div>
           <div className="text-xs text-[var(--muted)]">Recuperar senha</div>
         </div>
       </div>
       {sent ? (
-        <div className="rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-3 text-xs text-[var(--accent)]">
-          Se este email existir, você receberá um link pra redefinir a senha.
+        <div className="flex items-start gap-2 rounded-lg border border-[var(--accent)]/40 bg-[var(--accent)]/10 px-3 py-3 text-xs text-[var(--accent)]">
+          <CheckCircle2 size={14} className="shrink-0 mt-0.5" />
+          <span>
+            Se este email existir, você receberá um link pra redefinir a senha.
+          </span>
         </div>
       ) : (
         <>
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-[var(--muted)] text-xs">Email</span>
-            <input
+          <FieldWrap label="Email">
+            <Input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
+              placeholder="voce@exemplo.com"
+              autoComplete="email"
             />
-          </label>
+          </FieldWrap>
           {error && (
-            <div className="mt-3 rounded-lg border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-3 py-2 text-xs text-[var(--danger)]">
-              {error}
+            <div className="mt-4 flex items-start gap-2 rounded-lg border border-[var(--danger)]/40 bg-[var(--danger)]/10 px-3 py-2.5 text-xs text-[var(--danger)]">
+              <AlertCircle size={14} className="shrink-0 mt-0.5" />
+              <span>{error}</span>
             </div>
           )}
-          <button
+          <Button
             type="submit"
-            disabled={loading}
-            className="mt-5 w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)] disabled:opacity-60"
+            loading={loading}
+            fullWidth
+            size="lg"
+            className="mt-6"
           >
-            {loading ? "..." : "Enviar link"}
-          </button>
+            {loading ? "Enviando..." : "Enviar link"}
+          </Button>
         </>
       )}
-      <div className="mt-4 text-center text-xs text-[var(--muted)]">
-        <Link href="/login" className="text-[var(--accent)] hover:underline">
+      <div className="mt-5 text-center text-xs text-[var(--muted)]">
+        <Link
+          href="/login"
+          className="text-[var(--accent)] hover:underline font-medium"
+        >
           Voltar pro login
         </Link>
       </div>

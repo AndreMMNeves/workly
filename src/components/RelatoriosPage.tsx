@@ -14,6 +14,7 @@ import {
 } from "recharts";
 import { useAccounts, useTransactions } from "@/lib/data";
 import { brl, monthKey } from "@/lib/format";
+import PageHeader from "./ui/PageHeader";
 
 const WEEK_DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
@@ -107,12 +108,10 @@ export default function RelatoriosPage() {
 
   return (
     <>
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Relatórios</h1>
-        <p className="text-sm text-[var(--muted)]">
-          Compare meses, descubra onde está gastando e detecte padrões.
-        </p>
-      </header>
+      <PageHeader
+        title="Relatórios"
+        description="Compare meses, descubra onde está gastando e detecte padrões."
+      />
 
       <section className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card title="Entradas × Saídas (12 meses)">

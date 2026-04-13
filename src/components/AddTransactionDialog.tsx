@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Plus, TrendingDown, TrendingUp } from "lucide-react";
 import {
   DEFAULT_CATEGORIES,
   addTransaction,
@@ -9,6 +10,10 @@ import {
   type Transaction,
 } from "@/lib/data";
 import { useToast } from "@/lib/toast";
+import Button from "./ui/Button";
+import Dialog from "./ui/Dialog";
+import { FieldWrap, Input, Select } from "./ui/Field";
+import MoneyInput, { parseBRL } from "./ui/MoneyInput";
 
 type Props = {
   accounts: Account[];
@@ -17,6 +22,13 @@ type Props = {
   trigger?: "button" | "external";
   open?: boolean;
 };
+
+function toBRLString(n: number): string {
+  return n.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
 
 export default function AddTransactionDialog({
   accounts,
@@ -35,14 +47,20 @@ export default function AddTransactionDialog({
     description: edit?.description ?? "",
     merchant: edit?.merchant ?? "",
     category: edit?.category ?? DEFAULT_CATEGORIES[0],
-    amount: edit ? String(Math.abs(edit.amount)).replace(".", ",") : "",
-    type: (edit && edit.amount < 0 ? "expense" : "income") as "expense" | "income",
+    amount: edit ? toBRLString(Math.abs(edit.amount)) : "",
+    type: (edit && edit.amount < 0 ? "expense" : "income") as
+      | "expense"
+      | "income",
   });
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState(false);
 
   useEffect(() => {
-    if (open) setForm(blank());
+    if (open) {
+      setForm(blank());
+      setTouched(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, edit?.id]);
 
@@ -51,17 +69,24 @@ export default function AddTransactionDialog({
     else setOpenState(false);
   }
 
+  const amountValue = parseBRL(form.amount);
+  const amountInvalid = touched && amountValue <= 0;
+  const accountInvalid = touched && !form.accountId;
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    const n = Number(form.amount.replace(",", "."));
-    if (!n || !form.accountId) return;
+    setTouched(true);
+    if (amountValue <= 0 || !form.accountId) return;
     const payload = {
       accountId: form.accountId,
       date: form.date,
       description: form.description,
       merchant: form.merchant || undefined,
       category: form.category,
-      amount: form.type === "expense" ? -Math.abs(n) : Math.abs(n),
+      amount:
+        form.type === "expense"
+          ? -Math.abs(amountValue)
+          : Math.abs(amountValue),
     };
     setSaving(true);
     try {
@@ -80,124 +105,148 @@ export default function AddTransactionDialog({
     }
   }
 
+  const isExpense = form.type === "expense";
+
   return (
     <>
       {trigger === "button" && (
-        <button
+        <Button
           onClick={() => setOpenState(true)}
-          className="rounded-full bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)]"
+          leftIcon={<Plus size={16} strokeWidth={2.5} />}
         >
-          + Nova transação
-        </button>
+          Nova transação
+        </Button>
       )}
-      {open && (
-        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4">
-          <form
-            onSubmit={submit}
-            className="w-full max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-semibold">
-                {edit ? "Editar transação" : "Nova transação"}
-              </h2>
-              <button
-                type="button"
-                onClick={close}
-                className="text-[var(--muted)] hover:text-foreground"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <label className="col-span-2 flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Conta</span>
-                <select
-                  value={form.accountId}
-                  onChange={(e) => setForm({ ...form, accountId: e.target.value })}
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                >
-                  {accounts.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Tipo</span>
-                <select
-                  value={form.type}
-                  onChange={(e) =>
-                    setForm({ ...form, type: e.target.value as "expense" | "income" })
-                  }
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                >
-                  <option value="expense">Despesa</option>
-                  <option value="income">Receita</option>
-                </select>
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Valor (R$)</span>
-                <input
-                  inputMode="decimal"
-                  value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                  placeholder="0,00"
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Data</span>
-                <input
-                  type="date"
-                  value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                />
-              </label>
-              <label className="flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Categoria</span>
-                <select
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                >
-                  {DEFAULT_CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="col-span-2 flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Estabelecimento</span>
-                <input
-                  value={form.merchant}
-                  onChange={(e) => setForm({ ...form, merchant: e.target.value })}
-                  placeholder="Ex.: Mercado Extra, iFood, Uber"
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                />
-              </label>
-              <label className="col-span-2 flex flex-col gap-1">
-                <span className="text-[var(--muted)] text-xs">Descrição</span>
-                <input
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Ex.: Compras da semana"
-                  className="rounded-lg bg-[var(--surface-2)] border border-[var(--border)] px-3 py-2"
-                />
-              </label>
-            </div>
+      <Dialog
+        open={open}
+        onClose={close}
+        title={edit ? "Editar transação" : "Nova transação"}
+        description={
+          edit
+            ? "Atualize os detalhes da transação"
+            : "Registre uma nova entrada ou saída"
+        }
+      >
+        <form onSubmit={submit} className="space-y-4">
+          {/* Type toggle */}
+          <div className="grid grid-cols-2 gap-2 p-1 rounded-xl bg-[var(--surface-2)] border border-[var(--border)]">
             <button
-              type="submit"
-              disabled={saving}
-              className="mt-5 w-full rounded-full bg-[var(--accent)] py-2.5 text-sm font-medium text-[var(--background)] hover:bg-[var(--accent-strong)] disabled:opacity-60"
+              type="button"
+              onClick={() => setForm({ ...form, type: "expense" })}
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                isExpense
+                  ? "bg-[var(--danger)]/15 text-[var(--danger)] shadow-sm"
+                  : "text-[var(--muted)] hover:text-foreground"
+              }`}
             >
-              {saving ? "Salvando..." : "Salvar"}
+              <TrendingDown size={16} />
+              Despesa
             </button>
-          </form>
-        </div>
-      )}
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, type: "income" })}
+              className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all ${
+                !isExpense
+                  ? "bg-[var(--accent)]/15 text-[var(--accent)] shadow-sm"
+                  : "text-[var(--muted)] hover:text-foreground"
+              }`}
+            >
+              <TrendingUp size={16} />
+              Receita
+            </button>
+          </div>
+
+          {/* Amount — hero field */}
+          <FieldWrap
+            label="Valor"
+            required
+            error={amountInvalid ? "Informe um valor válido" : undefined}
+          >
+            <MoneyInput
+              value={form.amount}
+              onChange={(v) => setForm({ ...form, amount: v })}
+              invalid={amountInvalid}
+              autoFocus
+            />
+          </FieldWrap>
+
+          <div className="grid grid-cols-2 gap-3">
+            <FieldWrap
+              label="Conta"
+              required
+              error={accountInvalid ? "Selecione uma conta" : undefined}
+            >
+              <Select
+                value={form.accountId}
+                onChange={(e) =>
+                  setForm({ ...form, accountId: e.target.value })
+                }
+              >
+                {accounts.length === 0 && <option value="">—</option>}
+                {accounts.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.name}
+                  </option>
+                ))}
+              </Select>
+            </FieldWrap>
+            <FieldWrap label="Categoria">
+              <Select
+                value={form.category}
+                onChange={(e) =>
+                  setForm({ ...form, category: e.target.value })
+                }
+              >
+                {DEFAULT_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </FieldWrap>
+          </div>
+
+          <FieldWrap label="Data">
+            <Input
+              type="date"
+              value={form.date}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+            />
+          </FieldWrap>
+
+          <FieldWrap label="Estabelecimento">
+            <Input
+              value={form.merchant}
+              onChange={(e) => setForm({ ...form, merchant: e.target.value })}
+              placeholder="Ex.: Mercado Extra, iFood, Uber"
+            />
+          </FieldWrap>
+
+          <FieldWrap label="Descrição">
+            <Input
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
+              placeholder="Ex.: Compras da semana"
+            />
+          </FieldWrap>
+
+          <div className="flex gap-2 pt-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={close}
+              fullWidth
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" loading={saving} fullWidth>
+              {saving ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </form>
+      </Dialog>
     </>
   );
 }

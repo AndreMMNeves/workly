@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { brl, monthKey } from "@/lib/format";
 import { useAccounts, useTransactions, useBalances } from "@/lib/data";
 import { useHideValues } from "@/lib/hideValues";
@@ -10,6 +11,7 @@ import RecentTransactions from "./RecentTransactions";
 import AddTransactionDialog from "./AddTransactionDialog";
 import HideValuesToggle from "./HideValuesToggle";
 import TransferDialog from "./TransferDialog";
+import PageHeader from "./ui/PageHeader";
 
 export default function Overview() {
   const accounts = useAccounts();
@@ -58,63 +60,75 @@ export default function Overview() {
 
   return (
     <>
-      <header className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Overview</h1>
-          <p className="text-sm text-[var(--muted)]">
-            Suas contas e transações em um só lugar.
-          </p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <HideValuesToggle />
-          <TransferDialog accounts={accounts} />
-          <AddTransactionDialog accounts={accounts} />
-        </div>
-      </header>
+      <PageHeader
+        title="Overview"
+        description="Suas contas e transações em um só lugar."
+        actions={
+          <>
+            <HideValuesToggle />
+            <TransferDialog accounts={accounts} />
+            <AddTransactionDialog accounts={accounts} />
+          </>
+        }
+      />
 
       <section className="mt-6 grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {accounts.map((a) => (
-          <AccountCard key={a.id} account={a} balance={balances.get(a.id) ?? 0} />
+          <AccountCard
+            key={a.id}
+            account={a}
+            balance={balances.get(a.id) ?? 0}
+          />
         ))}
       </section>
 
       <section className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-          <div className="flex items-center justify-between">
+        <div className="lg:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+          <div className="flex items-start justify-between flex-wrap gap-4">
             <div>
-              <div className="text-xs text-[var(--muted)]">Saldo total</div>
-              <div className="text-2xl font-semibold">{mask(brl(total))}</div>
+              <div className="text-[11px] uppercase tracking-wider text-[var(--muted)] font-medium">
+                Saldo total
+              </div>
+              <div className="mt-1 text-3xl font-semibold tabular-nums">
+                {mask(brl(total))}
+              </div>
             </div>
-            <div className="flex gap-4 text-right text-xs">
-              <div>
-                <div className="text-[var(--muted)]">Entradas (mês)</div>
-                <div className="text-[var(--accent)] font-semibold text-sm">
+            <div className="flex gap-3">
+              <div className="rounded-xl bg-[var(--accent)]/10 border border-[var(--accent)]/20 px-3 py-2 min-w-[110px]">
+                <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-[var(--accent)] font-semibold">
+                  <ArrowUpRight size={12} />
+                  Entradas mês
+                </div>
+                <div className="mt-0.5 text-[var(--accent)] font-semibold text-sm tabular-nums">
                   {mask(brl(monthIncome))}
                 </div>
               </div>
-              <div>
-                <div className="text-[var(--muted)]">Saídas (mês)</div>
-                <div className="text-[var(--danger)] font-semibold text-sm">
-                  {mask(brl(monthExpense))}
+              <div className="rounded-xl bg-[var(--danger)]/10 border border-[var(--danger)]/20 px-3 py-2 min-w-[110px]">
+                <div className="flex items-center gap-1 text-[10px] uppercase tracking-wider text-[var(--danger)] font-semibold">
+                  <ArrowDownRight size={12} />
+                  Saídas mês
+                </div>
+                <div className="mt-0.5 text-[var(--danger)] font-semibold text-sm tabular-nums">
+                  {mask(brl(Math.abs(monthExpense)))}
                 </div>
               </div>
             </div>
           </div>
-          <div className="mt-4">
+          <div className="mt-6">
             {chartData.length > 0 ? (
               <BalanceChart data={chartData} />
             ) : (
-              <div className="h-64 grid place-items-center text-sm text-[var(--muted)]">
+              <div className="h-64 grid place-items-center rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--muted)]">
                 Adicione transações pra ver o gráfico.
               </div>
             )}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-          <div className="mb-2 flex items-center justify-between">
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="text-sm font-semibold">Transações recentes</h2>
-            <span className="text-xs text-[var(--muted)]">
+            <span className="text-[10px] uppercase tracking-wider text-[var(--muted)] bg-[var(--surface-2)] px-2 py-0.5 rounded-full">
               {transactions.length} total
             </span>
           </div>

@@ -52,17 +52,44 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
           );
         })}
       </nav>
-      <div className="mt-auto space-y-2">
-        <div className="rounded-xl bg-[var(--surface-2)] p-3 text-xs">
-          <div className="text-[var(--muted)]">Logado como</div>
-          <div className="truncate">{userEmail}</div>
+      <div className="mt-auto">
+        <div className="flex items-center gap-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] p-2">
+          <div
+            className="h-9 w-9 shrink-0 rounded-lg bg-[var(--accent)] grid place-items-center text-[var(--background)] text-sm font-bold"
+            aria-hidden
+          >
+            {userEmail.charAt(0).toUpperCase() || "?"}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] uppercase tracking-wider text-[var(--muted)]">
+              Conta
+            </div>
+            <div className="truncate text-xs font-medium" title={userEmail}>
+              {userEmail}
+            </div>
+          </div>
+          <button
+            onClick={signOut}
+            title="Sair"
+            aria-label="Sair"
+            className="shrink-0 rounded-lg p-2 text-[var(--muted)] hover:text-[var(--danger)] hover:bg-[var(--surface)] transition-colors"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
-        <button
-          onClick={signOut}
-          className="w-full rounded-xl border border-[var(--border)] px-3 py-2 text-xs text-[var(--muted)] hover:text-foreground hover:bg-[var(--surface-2)]"
-        >
-          Sair
-        </button>
       </div>
     </aside>
   );

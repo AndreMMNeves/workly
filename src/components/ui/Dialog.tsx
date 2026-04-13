@@ -49,15 +49,15 @@ export default function Dialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby="dialog-title"
-      className="fixed inset-0 z-50 grid place-items-center p-4 animate-[fadeIn_150ms_ease-out]"
+      className="fixed inset-0 z-50 grid place-items-center p-4 animate-[fadeIn_100ms_ease-out]"
     >
       <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70"
         onClick={onClose}
         aria-hidden
       />
       <div
-        className={`relative w-full ${sizes[size]} rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl animate-[slideUp_200ms_ease-out]`}
+        className={`relative w-full ${sizes[size]} rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-2xl animate-[slideUp_120ms_ease-out] will-change-transform`}
       >
         <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-4">
           <div className="min-w-0">

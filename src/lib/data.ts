@@ -200,26 +200,49 @@ const mapVaultMovement = (r: VaultMovementRow): VaultMovement => ({
 
 // Live queries with realtime --------------------------------------------------
 
-function useLive<T>(
-  table:
-    | "accounts"
-    | "transactions"
-    | "vaults"
-    | "vault_movements"
-    | "recurring_transactions"
-    | "budgets",
-  fetcher: () => Promise<T>,
-) {
+type LiveTable =
+  | "accounts"
+  | "transactions"
+  | "vaults"
+  | "vault_movements"
+  | "recurring_transactions"
+  | "budgets";
+
+const localListeners = new Map<LiveTable, Set<() => void>>();
+
+function notify(...tables: LiveTable[]) {
+  for (const t of tables) {
+    const set = localListeners.get(t);
+    if (set) for (const fn of set) fn();
+  }
+}
+
+function subscribeLocal(table: LiveTable, fn: () => void) {
+  let set = localListeners.get(table);
+  if (!set) {
+    set = new Set();
+    localListeners.set(table, set);
+  }
+  set.add(fn);
+  return () => {
+    set!.delete(fn);
+  };
+}
+
+function useLive<T>(table: LiveTable, fetcher: () => Promise<T>) {
   const [state, setState] = useState<T | null>(null);
   useEffect(() => {
     const supabase = createClient();
     let cancelled = false;
+    let pending = 0;
     const run = () => {
+      const seq = ++pending;
       fetcher().then((v) => {
-        if (!cancelled) setState(v);
+        if (!cancelled && seq === pending) setState(v);
       });
     };
     run();
+    const unsubLocal = subscribeLocal(table, run);
     const channelName = `live:${table}:${Math.random().toString(36).slice(2)}`;
     const channel = supabase
       .channel(channelName)
@@ -227,6 +250,7 @@ function useLive<T>(
       .subscribe();
     return () => {
       cancelled = true;
+      unsubLocal();
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -347,6 +371,7 @@ export async function addAccount(
     opening_balance: input.openingBalance,
   });
   if (error) throw error;
+  notify("accounts");
 }
 
 export async function updateAccount(id: string, patch: Partial<Account>) {
@@ -358,12 +383,14 @@ export async function updateAccount(id: string, patch: Partial<Account>) {
   if (patch.kind !== undefined) row.kind = patch.kind;
   const { error } = await supabase.from("accounts").update(row).eq("id", id);
   if (error) throw error;
+  notify("accounts");
 }
 
 export async function deleteAccount(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("accounts").delete().eq("id", id);
   if (error) throw error;
+  notify("accounts", "transactions");
 }
 
 export type TransactionInput = {
@@ -388,6 +415,7 @@ export async function addTransaction(input: TransactionInput) {
     amount: input.amount,
   });
   if (error) throw error;
+  notify("transactions");
 }
 
 export async function updateTransaction(id: string, patch: TransactionInput) {
@@ -404,12 +432,14 @@ export async function updateTransaction(id: string, patch: TransactionInput) {
     })
     .eq("id", id);
   if (error) throw error;
+  notify("transactions");
 }
 
 export async function deleteTransaction(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("transactions").delete().eq("id", id);
   if (error) throw error;
+  notify("transactions");
 }
 
 export async function addVault(input: {
@@ -430,12 +460,14 @@ export async function addVault(input: {
     deadline: input.deadline ?? null,
   });
   if (error) throw error;
+  notify("vaults");
 }
 
 export async function deleteVault(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("vaults").delete().eq("id", id);
   if (error) throw error;
+  notify("vaults", "vault_movements");
 }
 
 export async function addVaultMovement(input: {
@@ -454,6 +486,7 @@ export async function addVaultMovement(input: {
     note: input.note ?? null,
   });
   if (error) throw error;
+  notify("vault_movements");
 }
 
 // Transfer ------------------------------------------------------------------
@@ -492,6 +525,7 @@ export async function addTransfer(input: {
     },
   ]);
   if (error) throw error;
+  notify("transactions");
 }
 
 // Recurring -----------------------------------------------------------------
@@ -525,6 +559,7 @@ export async function addRecurring(input: RecurringInput) {
     active: true,
   });
   if (error) throw error;
+  notify("recurring_transactions");
 }
 
 export async function updateRecurring(id: string, patch: Partial<RecurringTransaction>) {
@@ -541,6 +576,7 @@ export async function updateRecurring(id: string, patch: Partial<RecurringTransa
     .update(row)
     .eq("id", id);
   if (error) throw error;
+  notify("recurring_transactions");
 }
 
 export async function deleteRecurring(id: string) {
@@ -550,6 +586,7 @@ export async function deleteRecurring(id: string) {
     .delete()
     .eq("id", id);
   if (error) throw error;
+  notify("recurring_transactions");
 }
 
 function addMonths(iso: string, n: number) {
@@ -602,6 +639,7 @@ export async function materializeRecurring() {
         .eq("id", r.id);
     }
   }
+  notify("transactions", "recurring_transactions");
 }
 
 // Budgets -------------------------------------------------------------------
@@ -616,12 +654,14 @@ export async function upsertBudget(category: string, monthlyLimit: number) {
       { onConflict: "user_id,category" },
     );
   if (error) throw error;
+  notify("budgets");
 }
 
 export async function deleteBudget(id: string) {
   const supabase = createClient();
   const { error } = await supabase.from("budgets").delete().eq("id", id);
   if (error) throw error;
+  notify("budgets");
 }
 
 export async function exportAll() {
@@ -661,4 +701,5 @@ export async function ensureSeedAccounts() {
       opening_balance: a.openingBalance,
     })),
   );
+  notify("accounts");
 }

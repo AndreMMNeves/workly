@@ -38,7 +38,7 @@ export default function Sidebar({ userEmail }: { userEmail: string }) {
   }
 
   return (
-    <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)]/80 backdrop-blur-xl p-4">
+    <aside className="hidden md:flex w-60 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--surface)] p-4">
       <Link
         href="/"
         className="flex items-center gap-2.5 px-2 py-3 outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded-lg"
